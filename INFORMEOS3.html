@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Sistema de Evaluación O.S.3 - Chile</title>
+
+    <!-- Meta para compartir / SEO -->
+    <meta name="description" content="Pauta de evaluación técnica O.S.3. Genere informes, gráficos y PDF de la evaluación." />
+    <meta property="og:title" content="Sistema de Evaluación O.S.3 - Chile" />
+    <meta property="og:description" content="Pauta de evaluación técnica O.S.3. Genere informes, gráficos y PDF de la evaluación." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="imagenes/logo-os3.jpeg" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Sistema de Evaluación O.S.3 - Chile" />
+    <meta name="twitter:description" content="Pauta de evaluación técnica O.S.3. Genere informes, gráficos y PDF de la evaluación." />
+
+    <!-- Favicon / Manifest -->
+    <link rel="icon" href="imagenes/logo-os3.jpeg" type="image/jpeg" />
+    <link rel="manifest" href="site.webmanifest" />
+    <meta name="theme-color" content="#0f5132" />
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Librerías diferidas para no bloquear render -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+
+    <!-- Estilos mínimos para la barra de compartir -->
+    <style>
+      .sharebar {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: var(--dark-green, #0f5132);
+        color: #ffffff; justificado 
+        padding: 8px 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+      }
+      .sharebar button {
+        background: #ffffff;
+        color: var(--dark-green, #0f5132);
+        border: 1px solid var(--dark-green, #0f5132);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .sharebar button:hover { background: #e6f4ea; }
+      @media print { .sharebar { display: none !important; } }
+      /* Estilo específico del botón de cierre dentro de la barra */
+      .sharebar .btn-logout {
+        position: static;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background: var(--red, #dc2626);
+        color: #ffffff;
+        border: none;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        line-height: 1;
+        box-shadow: none;
+      }
+      .sharebar .btn-logout:hover { filter: brightness(0.9); }
+    </style>
+</head>
+
+<body>
+<div class="sharebar">
+  <button onclick="logout()" class="btn-logout" aria-label="Cerrar sesión" title="Cerrar sesión" type="button">&times;</button>
+  <button id="btnShare" type="button">Compartir</button>
+  <button id="btnCopyLink" type="button">Copiar enlace</button>
+  <button id="btnPrint" type="button">Imprimir</button>
+</div>
+
+<div id="login-screen" class="login-container">
+    <div class="login-box">
+        <img src="imagenes/logo-os3.jpeg" alt="Logo" class="login-logo" crossOrigin="anonymous" onerror="this.style.display='none'">
+        <h2>SISTEMA OS3</h2>
+        <p>Ingrese sus credenciales</p>
+        <input type="text" id="username" placeholder="Usuario">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="checkLogin()" class="btn-login">INGRESAR</button>
+        <p id="login-error" style="color:red; display:none; margin-top:10px;">Credenciales incorrectas</p>
+    </div>
+</div>
+
+<div id="main-content" style="display:none;">
+    
+    <div id="panel-administracion" class="container user-management-panel" style="display: none; border-top: 3px solid var(--blue); margin-top: 15px;">
+        <h3>👥 GESTIÓN DE USUARIOS (ADMIN)</h3>
+        <div class="user-form">
+            <div class="form-group">
+                <label for="new-username">👤 Nuevo Usuario:</label>
+                <input type="text" id="new-username" placeholder="Ingrese nombre de usuario" class="obs-input">
+            </div>
+            <div class="form-group">
+                <label for="new-password">🔒 Contraseña:</label>
+                <input type="password" id="new-password" placeholder="Ingrese contraseña" class="obs-input">
+            </div>
+            <button onclick="registrarUsuario()" class="btn-create-user">➕ CREAR USUARIO</button>
+        </div>
+        <div class="user-table-container">
+            <table id="tablaUsuarios" class="user-table">
+                <thead>
+                    <tr>
+                        <th>👤 Usuario</th>
+                        <th>🏷️ Rango</th>
+                        <th>⚙️ Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="listaUsuariosBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container">
+    <div class="header-ui">
+        <div style="display:flex; align-items:center; gap:20px;">
+            <div class="logo-container">
+                <img class="logo-img" id="img-logo" src="imagenes/logo-os3.jpeg" alt="Logo" crossOrigin="anonymous" onerror="this.style.display='none'">
+            </div>
+            <div>
+                <h2 style="margin:0; color:var(--dark-green)">DEPARTAMENTO O.S.3</h2>
+                <p style="margin:0; font-size:0.9em; color:#64748b; font-weight:bold;">PAUTA DE EVALUACIÓN TÉCNICA (ESCALA 1-10)</p>
+                <div style="margin-top:5px;">
+                    <span class="correlativo-badge">EVALUACIÓN N° <span id="numCorrelativo">001</span></span>
+                </div>
+            </div>
+        </div>
+        <div class="info-header" style="text-align:right;">
+            <label style="display:block; font-size:0.8em; color:#64748b;">UNIDAD EVALUADA:</label>
+            <select id="nombreUnidad" class="unit-select" onchange="renderPdfPreview()">
+                <option value="">Seleccione una unidad...</option>
+                <optgroup label="XV ZONA ARICA Y PARINACOTA">
+            <option value="Pref. Arica - 3ª Com. Putre (Fronteriza)">3ª Com. Putre (F)</option>
+            <option value="Tenencia Visviri (Fronteriza)">Tenencia Visviri (F)</option>
+            <option value="Retén Caquena (Fronterizo)">Retén Caquena (F)</option>
+            <option value="Retén Guallatire (Fronterizo)">Retén Guallatire (F)</option>
+            <option value="Avanzada Chinchorro (Fronteriza)">Avanzada Chinchorro (F)</option>
+        </optgroup>
+
+        <optgroup label="I ZONA TARAPACÁ">
+            <option value="Pref. Iquique - 1ª Com. Iquique (Operativa)">1ª Com. Iquique (O)</option>
+            <option value="Pref. Iquique - Subcom. Colchane (Fronteriza)">Subcom. Colchane (F)</option>
+            <option value="Tenencia Ujina (Fronteriza)">Tenencia Ujina (F)</option>
+            <option value="Retén Cancosa (Fronterizo)">Retén Cancosa (F)</option>
+            <option value="Avanzada Pica (Fronteriza)">Avanzada Pica (F)</option>
+        </optgroup>
+
+        <optgroup label="II ZONA ANTOFAGASTA">
+            <option value="Pref. El Loa - 4ª Com. Calama (Operativa)">4ª Com. Calama (O)</option>
+            <option value="Subcom. San Pedro de Atacama (Fronteriza)">Subcom. San Pedro (F)</option>
+            <option value="Tenencia Ollagüe (Fronteriza)">Tenencia Ollagüe (F)</option>
+            <option value="Retén Inacaliri (Fronterizo)">Retén Inacaliri (F)</option>
+            <option value="Retén Tocorpuri (Fronterizo)">Retén Tocorpuri (F)</option>
+            <option value="Avanzada Hito Cajón (Fronteriza)">Avanzada Hito Cajón (F)</option>
+        </optgroup>
+
+        <optgroup label="III ZONA ATACAMA">
+            <option value="Pref. Atacama - 4ª Com. El Salvador (Operativa)">4ª Com. El Salvador (O)</option>
+            <option value="Retén Maricunga (Fronterizo)">Retén Maricunga (F)</option>
+            <option value="Avanzada Laguna Verde (Fronteriza)">Avanzada Laguna Verde (F)</option>
+        </optgroup>
+
+        <optgroup label="IV ZONA COQUIMBO">
+            <option value="Pref. Limarí - 3ª Com. Ovalle (Operativa)">3ª Com. Ovalle (O)</option>
+            <option value="Subcom. Juntas del Toro (Fronteriza)">Subcom. Juntas del Toro (F)</option>
+            <option value="Retén Pichidangui (Operativo)">Retén Pichidangui (O)</option>
+        </optgroup>
+
+        <optgroup label="V ZONA VALPARAÍSO">
+            <option value="Pref. Los Andes - 3ª Com. Los Andes (Operativa)">3ª Com. Los Andes (O)</option>
+            <option value="Subcom. Los Libertadores (Fronteriza)">Subcom. Los Libertadores (F)</option>
+            <option value="Tenencia Uspallata (Fronteriza)">Tenencia Uspallata (F)</option>
+            <option value="Retén Guardia Vieja (Fronterizo)">Retén Guardia Vieja (F)</option>
+        </optgroup>
+
+        <optgroup label="ZONA METROPOLITANA">
+            <option value="Pref. Central - 1ª Com. Santiago (Operativa)">1ª Com. Santiago (O)</option>
+            <option value="Pref. Cordillera - Retén San Gabriel (Fronterizo)">Retén San Gabriel (F)</option>
+            <option value="Retén Farellones (Operativo)">Retén Farellones (O)</option>
+        </optgroup>
+
+        <optgroup label="VII ZONA MAULE">
+            <option value="Pref. Talca - Tenencia Potrero Grande (Fronteriza)">Tenencia Potrero Grande (F)</option>
+            <option value="Retén El Radal (Fronterizo)">Retén El Radal (F)</option>
+            <option value="Retén Paso Nevado (Fronterizo)">Retén Paso Nevado (F)</option>
+        </optgroup>
+
+        <optgroup label="IX ZONA ARAUCANÍA">
+            <option value="Pref. Malleco - Subcom. Icalma (Fronteriza)">Subcom. Icalma (F)</option>
+            <option value="Tenencia Pino Hachado (Fronteriza)">Tenencia Pino Hachado (F)</option>
+            <option value="Retén Liucura (Fronterizo)">Retén Liucura (F)</option>
+        </optgroup>
+
+        <optgroup label="XI ZONA AISÉN">
+            <option value="Pref. Aisén - 4ª Com. Cochrane (Fronteriza)">4ª Com. Cochrane (F)</option>
+            <option value="Tenencia H. Merino Correa (Fronteriza)">Tenencia H. Merino Correa (F)</option>
+            <option value="Retén Entrada Baker (Fronterizo)">Retén Entrada Baker (F)</option>
+            <option value="Avanzada El Fraile (Fronteriza)">Avanzada El Fraile (F)</option>
+        </optgroup>
+
+        <optgroup label="XII ZONA MAGALLANES">
+            <option value="Pref. Magallanes - Tenencia Monte Aymond (Fronteriza)">Tenencia Monte Aymond (F)</option>
+            <option value="Subcom. Casas Viejas (Fronteriza)">Subcom. Casas Viejas (F)</option>
+            <option value="Retén Cañadón Grande (Fronterizo)">Retén Cañadón Grande (F)</option>
+            <option value="Retén Posesión (Fronterizo)">Retén Posesión (F)</option>
+            <option value="Retén Teniente Merino (Fronterizo)">Retén Teniente Merino (F)</option>
+        </optgroup>
+      </select>
+      <div class="mini-status" id="estadoFolio">Estado: Listo</div>
+    </div>
+  </div>
+
+    <table id="tablaDatos">
+        <thead>
+            <tr>
+                <th>Ítem / Sub-ítem Estratégico</th>
+                <th>Nota (0-10)</th>
+                <th>Cant. / Obs.</th>
+            </tr>
+        </thead>
+        <tbody id="cuerpoTabla"></tbody>
+    </table>
+
+    <div class="chart-container"><canvas id="graficoEvaluacion"></canvas></div>
+
+    <div style="margin-top:20px;">
+        <label style="font-weight:bold; color:var(--dark-green);">Análisis del Evaluador:</label>
+        <textarea id="comentariosEvaluador" class="comentarios-area" rows="4" oninput="renderPdfPreview()"></textarea>
+    </div>
+
+    <button class="btn-preparar" id="btnPreparar">GENERAR VISTA PREVIA DEL INFORME</button>
+    <p style="text-align:center; font-size:0.7em; color:#94a3b8; cursor:pointer; margin-top:15px;"></p>
+<button id="btnReset" style="
+    background: var(--dark-green);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 50px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+">
+    RESET
+</button>
+
+<!-- 🔽 Vista previa del PDF (sección que se activa con prepararInforme) -->
+<div class="preview-section" id="seccion-final" style="display:none;">
+    <h3 style="color: white; margin-bottom: 20px;">VISTA PREVIA DEL INFORME</h3>
+    <button class="btn-descargar-final" id="btnDescargar">DESCARGAR Y GUARDAR PDF OFICIAL</button>
+
+    <div id="pdf-template">
+        <div class="pdf-header">
+            <div class="pdf-header-text">
+                         CARABINEROS DE CHILE<br>
+                ZONA FRONTERAS Y SERVICIOS ESPECIALES<br>
+                DEPARTAMENTO SERVICIOS DE FRONTERAS O.S.3<br>
+                UNIDAD: <span id="pdf-unit-name">---</span>
+            </div>
+            <div style="text-align:center;">
+                <img src="imagenes/logo-os3.jpeg" style="width:70px; height:70px; object-fit:contain;" crossOrigin="anonymous" onerror="this.style.display='none'">
+                <div style="font-size:10px; font-weight:bold; margin-top:5px; background:var(--dark-green); color:white; padding:2px 8px; border-radius:4px;">
+                    FOLIO: <span id="pdf-folio-num">001</span>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="text-align:center; margin-top:30px; text-transform:uppercase; font-size:20px; color:var(--dark-green);">
+            Informe Técnico de Evaluación
+        </h2>
+        <p style="text-align:right; font-size:11px; color:#64748b;" id="pdf-date"></p>
+
+        <div id="pdf-grid-content" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:15px; margin-top:80px;"></div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:25px;">
+            <div id="pdf-nota-final-box" style="width:200px; border:2px solid var(--dark-green); padding:15px; text-align:center; border-radius:5px; background:#f0fdf4;">
+                <div style="font-size:10px; font-weight:bold; color:var(--dark-green);">NOTA FINAL (PROMEDIO)</div>
+                <div id="pdf-nota-final-val" style="font-size:32px; font-weight:900;">10.0</div>
+            </div>
+        </div>
+
+        <div style="margin-top:30px; border:1px solid var(--dark-green); padding:20px; background-color:#f8fafc; border-radius:5px; flex-grow:1;">
+            <strong style="font-size:13px; color:var(--dark-green); display:block; border-bottom:1px solid #cbd5e1; margin-bottom:10px;">
+                OBSERVACIONES Y CONCLUSIONES TÉCNICAS:
+            </strong>
+            <p id="pdf-comentarios" style="text-align: justify; font-size: 12px; line-height: 1.5; white-space: pre-wrap;"></p>
+        </div>
+
+        <div class="pdf-firma-container">
+            <div class="pdf-firma-wrapper" style="padding-top: 0; min-height: 240px;">
+                <img src="imagenes/TIMBRE.png" style="position:absolute; left:0; top:25%; transform:translate(-10%, -50%); width:140px; opacity:0.9; z-index:1; pointer-events:none;" crossOrigin="anonymous" onerror="this.style.display='none'">
+                <img src="imagenes/Firma.jpeg" style="position:absolute; left:50%; bottom:160px; transform:translateX(-50%); max-height:110px; z-index:2; background:transparent; border:none; opacity:0.85; mix-blend-mode:multiply;" crossOrigin="anonymous" onerror="this.style.display='none'">
+                <div class="pdf-firma-texto" style="border-top:none; padding-top:0; margin-top:40px; background:transparent; position:relative; z-index:0;">
+                    <strong>ERICK C. VENTHUR SEPÚLVEDA</strong><br>
+                    Teniente Coronel de Carabineros<br>
+                    JEFE DEPARTAMENTO SERVICIOS DE FRONTERAS O.S.3
+                </div>
+            </div>
+        </div>
+    </div>
+</div> <!-- cierre pdf-template -->
+</div> <!-- cierre preview-section -->
+
+</div> <!-- cierre main-content -->
+
+<script src="script.js"></script>
+<script src="script_reinicio_anual.js"></script>
+<script>
+(function () {
+  const shareBtn = document.getElementById('btnShare');
+  const printBtn = document.getElementById('btnPrint');
+  const copyBtn = document.getElementById('btnCopyLink');
+
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      const shareData = {
+        title: document.title || 'Informe O.S.3',
+        text: 'Informe de evaluación técnica O.S.3',
+        url: location.href
+      };
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          await navigator.clipboard.writeText(location.href);
+          shareBtn.textContent = 'Enlace copiado';
+          setTimeout(() => (shareBtn.textContent = 'Compartir'), 2000);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(location.href);
+        copyBtn.textContent = 'Copiado';
+        setTimeout(() => (copyBtn.textContent = 'Copiar enlace'), 2000);
+      } catch (e) {
+        console.error(e);
+        alert('No se pudo copiar el enlace.');
+      }
+    });
+  }
+
+  if (printBtn) {
+    printBtn.addEventListener('click', () => window.print());
+  }
+})();
+</script>
+</body>
+</html>
+
+
